@@ -173,11 +173,14 @@ class View extends \yii\base\View
 
         $content = ob_get_clean();
 
-        echo strtr($content, [
-            self::PH_HEAD => $this->renderHeadHtml(),
-            self::PH_BODY_BEGIN => $this->renderBodyBeginHtml(),
-            self::PH_BODY_END => $this->renderBodyEndHtml($ajaxMode),
-        ]);
+        echo strtr(
+            $content,
+            [
+                self::PH_HEAD => $this->renderHeadHtml(),
+                self::PH_BODY_BEGIN => $this->renderBodyBeginHtml(),
+                self::PH_BODY_END => $this->renderBodyEndHtml($ajaxMode),
+            ]
+        );
 
         $this->clear();
     }
@@ -300,7 +303,9 @@ class View extends \yii\base\View
             if ($pos === null) {
                 $bundle->jsOptions['position'] = $pos = $position;
             } elseif ($pos > $position) {
-                throw new InvalidConfigException("An asset bundle that depends on '$name' has a higher javascript file position configured than '$name'.");
+                throw new InvalidConfigException(
+                    "An asset bundle that depends on '$name' has a higher javascript file position configured than '$name'."
+                );
             }
             // update position for all dependencies
             foreach ($bundle->depends as $dep) {
@@ -398,17 +403,27 @@ class View extends \yii\base\View
     {
         $url = Yii::getAlias($url);
         $key = $key ?: $url;
+
         $depends = ArrayHelper::remove($options, 'depends', []);
 
-        if (empty($depends)) {
-            $this->cssFiles[$key] = Html::cssFile($url, $options);
-        } else {
-            $this->getAssetManager()->bundles[$key] = new AssetBundle([
-                'baseUrl' => '',
-                'css' => [strncmp($url, '//', 2) === 0 ? $url : ltrim($url, '/')],
+        $url = str_replace(Yii::getAlias('@web'), '', $url);
+        $url = strncmp($url, '//', 2) === 0 ? $url : ltrim($url, '/');
+
+        $bundle = new AssetBundle(
+            [
+                'baseUrl' => '@web',
+                'basePath' => '@webroot',
+                'css' => (array)$url,
                 'cssOptions' => $options,
-                'depends' => (array) $depends,
-            ]);
+                'depends' => (array)$depends,
+            ]
+        );
+
+        if (empty($depends)) {
+            $string = $this->getAssetManager()->getAssetUrl($bundle, $url);
+            $this->cssFiles[$key] = Html::cssFile($string, $options);
+        } else {
+            $this->getAssetManager()->bundles[$key] = $bundle;
             $this->registerAssetBundle($key);
         }
     }
@@ -462,18 +477,28 @@ class View extends \yii\base\View
     {
         $url = Yii::getAlias($url);
         $key = $key ?: $url;
+
         $depends = ArrayHelper::remove($options, 'depends', []);
 
+        $url = str_replace(Yii::getAlias('@web'), '', $url);
+        $url = strncmp($url, '//', 2) === 0 ? $url : ltrim($url, '/');
+
+        $bundle = new AssetBundle(
+            [
+                'baseUrl' => '@web',
+                'basePath' => '@webroot',
+                'js' => (array)$url,
+                'jsOptions' => $options,
+                'depends' => (array)$depends,
+            ]
+        );
+
         if (empty($depends)) {
+            $url = $this->getAssetManager()->getAssetUrl($bundle, $url);
             $position = ArrayHelper::remove($options, 'position', self::POS_END);
             $this->jsFiles[$position][$key] = Html::jsFile($url, $options);
         } else {
-            $this->getAssetManager()->bundles[$key] = new AssetBundle([
-                'baseUrl' => '',
-                'js' => [strncmp($url, '//', 2) === 0 ? $url : ltrim($url, '/')],
-                'jsOptions' => $options,
-                'depends' => (array) $depends,
-            ]);
+            $this->getAssetManager()->bundles[$key] = $bundle;
             $this->registerAssetBundle($key);
         }
     }
