@@ -467,6 +467,11 @@ abstract class BaseMigrateController extends Controller
      *
      * @param string $name the name of the new migration. This should only contain
      * letters, digits and/or underscores.
+     * 
+     * Note: If the migration name is of a special form, for example create_xxx or
+     * drop_xxx then the generated migration file will contain extra code,
+     * in this case for creating/dropping tables.
+     * 
      * @throws Exception if the name argument is invalid.
      */
     public function actionCreate($name)
@@ -526,7 +531,7 @@ abstract class BaseMigrateController extends Controller
             return true;
         }
 
-        $this->stdout("*** reverting $class\n", Console::FG_YELLOW);
+        $this->stdout("*** reverting $class\n", Console::FG_YELLOW);c
         $start = microtime(true);
         $migration = $this->createMigration($class);
         if ($migration->down() !== false) {
